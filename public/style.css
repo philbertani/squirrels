@@ -30,5 +30,7 @@ video {
     margin-left:5px;
     width: 18vw;
     height: 90vh;
-    border: 5px solid black
+    border: 2px solid black;
+    display: flex;
+    flex-direction: column;
 }

@@ -9,6 +9,7 @@ class GPU {
     resized = false;
     controls = {};
     showShadows = 0;
+    pointList = [];
   
     constructor(canvas) {
 
@@ -46,7 +47,7 @@ class GPU {
       this.controls.zoomSpeed = 1;
 
       this.pointMaterial = new THREE.MeshPhongMaterial(
-        { color: "rgb(255,200,0)", opacity: .4, transparent:true }
+        { color: "rgb(255,200,0)", opacity: .4, transparent:true, blending: THREE.AdditiveBlending }
       )  
       this.innerPointMaterial = new THREE.MeshPhongMaterial({color:"rgb(150,0,255)"})
 
@@ -105,6 +106,8 @@ class GPU {
         point.castShadow = true;
         innerPoint.castShadow = true;
    
+        this.pointList.push(point)
+
         this.scene.add(point)
         this.scene.add(innerPoint)
 
@@ -123,6 +126,11 @@ class GPU {
       this.scene.add(this.plane);
       this.controls.shadowToggle = document.getElementById('shadowToggle')
       this.controls.shadowToggle.onclick = (ev)=>{this.showShadows ^= 1;}
+      this.controls.transparentRadiusSlider = document.getElementById("transparentRadiusSlider")
+      this.controls.transparentRadiusSlider.onchange = (ev)=>{
+        console.log("slider",ev.target.value)
+        this.rescaleTransparentSpheres(ev.target.value)
+      }
 
       this.renderer.render(this.scene,this.camera)
     }
@@ -143,11 +151,15 @@ class GPU {
       textElem.style.transform = `translate(-50%, -50%) translate(${textX}px,${textY}px)`;
     }
 
+    rescaleTransparentSpheres(newScale) {
+      const sc = Math.max(.5, newScale / 50);
+      for (const point of this.pointList) {
+        point.scale.set(sc,sc,sc)
+      }
+    }
+
     render() {
   
-      const tempV = new THREE.Vector3();
-      const tempV02 = new THREE.Vector3();
-
       let prevRenderTime = Date.now();
       const fps = 40;
       const fpsInterval = 1000 / fps;
