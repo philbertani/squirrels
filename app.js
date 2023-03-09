@@ -14,6 +14,8 @@ class App {
   gpu = null;
   zDataHeader = "Location"   //can be "Ground Plane" or "Above Ground" and some are blank
   zDataColumnNum;
+  heightHeader = "Above Ground Sighter Measurement"
+  heightColumnNum;
 
   //keep track of the points that are min and max latitude
   minPoint = [[0,0] , [0,0]]
@@ -61,6 +63,7 @@ class App {
       if (x === this.latitudeHeader) this.latitudeColumnNum = i;
       else if (x === this.longitudeHeader) this.longitudeColumnNum = i;
       else if (x === this.zDataHeader) this.zDataColumnNum = i;
+      else if (x === this.heightHeader) this.heightColumNum = i; //some measure of height
     });
 
     //I always use ii for indices pointing into arrays
@@ -108,6 +111,7 @@ class App {
       this.midPoints.push((minMax[jj][MIN] + minMax[jj][MAX]) / 2);
     }
 
+    let count = 0
     //finally compute the X,Y coordinates we can use for display
     for (const row of this.data) {
       let coord = [];
@@ -117,13 +121,24 @@ class App {
         coord.push((row[col] - this.midPoints[jj]) * 100);
       }
       const zDataText = row[this.zDataColumnNum]
+  
       if (zDataText === "Ground Plane") coord.push(0)  //squirrels on the ground
-      else if (zDataText === "Above Ground") coord.push(1)  //squirrels in trees apparently
+      else if (zDataText === "Above Ground") {
+        const height = parseFloat(row[this.heightColumNum])
+
+        if ( !Number.isNaN(height) && height >= 0) {
+          coord.push(.1+height/30)
+        } 
+        else {
+          coord.push(.1)  //squirrels in trees apparently
+          count ++
+        }
+      }
       else coord.push( Math.trunc(Math.random()*2 )) 
       this.coords.push(coord);
     }
 
-    console.log('zzzzzzzzzzzz', this.minPoint);
+    console.log('zzzzzzzzzzzz count of trees', count);
 
     this.gpu.createScene(this.coords, this.minPoint);
     this.gpu.render();

@@ -38,7 +38,7 @@ class GPU {
       this.canvas = canvas;
       this.scene = new THREE.Scene();
       this.camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 3000);
-      this.camera.position.z = 5;
+      this.camera.position.z = 6;
   
       //this.controls = new THREE.
       this.controls = new OrbitControls(this.camera, renderer.domElement);
@@ -47,14 +47,23 @@ class GPU {
       this.controls.zoomSpeed = 1;
 
       this.pointMaterial = new THREE.MeshPhongMaterial(
-        { color: "rgb(255,200,0)", opacity: .4, transparent:true, blending: THREE.AdditiveBlending }
+        { color: "rgb(180,150,50)", opacity: .4, transparent:true, blending: THREE.AdditiveBlending }
       )  
-      this.innerPointMaterial = new THREE.MeshPhongMaterial({color:"rgb(150,0,255)"})
+      this.innerPointMaterial = new THREE.MeshPhongMaterial({color:"rgb(100,0,255)", blending: THREE.AdditiveBlending})
 
-      this.mainLight = new THREE.DirectionalLight(0xFFFFFF, 1)
+      this.treeMaterial = new THREE.MeshPhongMaterial(
+        { color: "rgb(255,255,200)" }
+      )
+
+      this.mainLight = new THREE.DirectionalLight(0xFFFFFF, .5)
       this.mainLight.position.set(0,0,5)
       this.setShadow(this.mainLight)
       this.scene.add(this.mainLight)
+
+      this.cameraLight = new THREE.PointLight(0xFFFF00,.6)
+      this.setShadow(this.cameraLight)
+      this.camera.add(this.cameraLight)
+      this.scene.add(this.camera)
 
       renderer.render(this.scene, this.camera)
     }
@@ -82,15 +91,15 @@ class GPU {
       //have to set the range of the orthographic shadow camera
       //to cover the whole plane we are casting shadows onto
       //the shadows get fuzzier if these limits are much greater than the scene
-      light.shadow.camera.left = -3;
-      light.shadow.camera.bottom = -2;
-      light.shadow.camera.right = 3;
-      light.shadow.camera.top = 2;
+      light.shadow.camera.left = -20;
+      light.shadow.camera.bottom = -20;
+      light.shadow.camera.right = 20;
+      light.shadow.camera.top = 20;
     }
 
     createScene(coords, textReferencePoint) {
-     
-      const pointGeo = new THREE.SphereGeometry(.035)
+      const cylinderGeo = new THREE.CylinderGeometry(.002,.003,.2)
+      const pointGeo = new THREE.SphereGeometry(.04)
       const innerPointGeo = new THREE.SphereGeometry(.015)
       const sc = 2.;
       const trans = 1.;
@@ -99,14 +108,24 @@ class GPU {
         const point = new THREE.Mesh(pointGeo,this.pointMaterial)
         const innerPoint = new THREE.Mesh(innerPointGeo,this.innerPointMaterial)
 
+        const tree = coord[2] > 0 ? 1  : 0
         //place the 2 views side by side by translating in -x direction
-        point.position.set(coord[0]-sc*coord[2]+trans,coord[1],2)
-        innerPoint.position.set(coord[0]-sc*coord[2]+trans,coord[1],2)
+        point.position.set(coord[0]-sc*tree+trans,coord[1],2+coord[2])
+        innerPoint.position.set(coord[0]-sc*tree+trans,coord[1],2+coord[2])
         
         point.castShadow = true;
         innerPoint.castShadow = true;
    
         this.pointList.push(point)
+
+        if ( tree ) {
+          const branch = new THREE.Mesh(cylinderGeo, this.treeMaterial)
+          branch.position.set(coord[0]-sc*tree+trans,coord[1],2+coord[2])
+          branch.rotateX(Math.PI/2)
+          branch.castShadow = true
+          branch.receiveShadow = true
+          this.scene.add(branch)
+        }
 
         this.scene.add(point)
         this.scene.add(innerPoint)
@@ -128,7 +147,7 @@ class GPU {
       this.controls.shadowToggle.onclick = (ev)=>{this.showShadows ^= 1;}
       this.controls.transparentRadiusSlider = document.getElementById("transparentRadiusSlider")
       this.controls.transparentRadiusSlider.onchange = (ev)=>{
-        console.log("slider",ev.target.value)
+        //console.log("slider",ev.target.value)
         this.rescaleTransparentSpheres(ev.target.value)
       }
 
@@ -143,7 +162,7 @@ class GPU {
       tempV.project(this.camera)      //gets us to the NDC coords/Clip Space for the center of this object
 
       const textX = (tempV.x*.5+.5)*this.width;  // NDC to pixel coords in div
-      const textY = (tempV.y*-.5+.5)*this.height + 20;  //CSS coords are opposite in Y direction
+      const textY = (tempV.y*-.5+.5)*this.height + 50;  //CSS coords are opposite in Y direction
 
       textElem.style.position = "absolute"
       textElem.textContent = text
